@@ -73,7 +73,7 @@ python3 -c 'import json, sys; print(json.dumps(json.load(sys.stdin)), end="")' \
 
 For a PIN-protected instance, add
 `-H "X-myMPD-Session: $MYMPD_SESSION"`. Check that the response has a
-JSON-RPC `result` and refresh the Home page. The **iHeartRadio Favorites**
+JSON-RPC `result` and refresh the Home page. The **iHeartRadio**
 tile opens the same picker as the Scripts menu.
 
 The launcher uses an original heart-and-radio-wave icon released under
