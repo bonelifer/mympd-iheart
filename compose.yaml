@@ -1,0 +1,19 @@
+services:
+  iheart:
+    build: .
+    user: "${IHEART_UID:?Set IHEART_UID}:${IHEART_GID:?Set IHEART_GID}"
+    volumes:
+      - type: bind
+        source: "${IHEART_CONFIG:-./test-account.json}"
+        target: /config/test-account.json
+        read_only: true
+        bind:
+          create_host_path: false
+    networks:
+      - mpd
+    restart: unless-stopped
+
+networks:
+  mpd:
+    external: true
+    name: "${MPD_NETWORK:-mpd}"

@@ -1,0 +1,19 @@
+services:
+  iheart:
+    build: .
+    user: "${IHEART_UID:-1000}:${IHEART_GID:-1000}"
+    network_mode: host
+    command: ["--listen", "127.0.0.1", "--artwork-dir", "/artwork"]
+    volumes:
+      - type: bind
+        source: ./data/test-account.json
+        target: /config/test-account.json
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ../mympd/data/workdir/pics/iheart-stations
+        target: /artwork
+        bind:
+          create_host_path: false
+    restart: unless-stopped
