@@ -1,6 +1,6 @@
 services:
   iheart:
-    build: .
+    image: ghcr.io/bonelifer/mympd-iheart:latest
     user: "${IHEART_UID:?Set IHEART_UID}:${IHEART_GID:?Set IHEART_GID}"
     volumes:
       - type: bind

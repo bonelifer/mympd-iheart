@@ -26,18 +26,17 @@ Docker Compose, use the same UID and GID that own the config file.
 ```sh
 export IHEART_CONFIG="$HOME/.config/mympd-iheart/test-account.json"
 export IHEART_UID="$(id -u)" IHEART_GID="$(id -g)"
-docker compose -f compose.yaml -f compose.host.yaml up --build -d
+docker compose -f compose.yaml -f compose.host.yaml up --pull always -d
 ```
 
 If myMPD uses a private Docker network, set `MPD_NETWORK` to that
-existing network and run `docker compose up --build -d`. Use
+existing network and run `docker compose up --pull always -d`. Use
 `--service http://iheart:18767` when installing the picker. Keep the
 bridge on loopback or a private network because it serves your saved
 station list to clients that can reach it.
 
 For a host-networked Dockhand stack, copy
-`dockhand/docker-compose.yml`, `Dockerfile`, `.dockerignore`,
-`account.py`, and `bridge.py` into the stack directory. Put your private
+`dockhand/docker-compose.yml` into the stack directory. Put your private
 config at `data/test-account.json` and set `IHEART_UID` and
 `IHEART_GID` if they differ from 1000.
 

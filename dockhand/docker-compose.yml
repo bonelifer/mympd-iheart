@@ -1,6 +1,6 @@
 services:
   iheart:
-    build: .
+    image: ghcr.io/bonelifer/mympd-iheart:latest
     user: "${IHEART_UID:-1000}:${IHEART_GID:-1000}"
     network_mode: host
     command: ["--listen", "127.0.0.1", "--artwork-dir", "/artwork"]
