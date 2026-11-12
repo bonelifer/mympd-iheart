@@ -47,8 +47,33 @@
     }
 
     function trackTitle(value) {
-        const match = value.match(/^(.+?\s+-\s+)text="([^"]+)"(?:\s+\w+="[^"]*")+\s*$/u);
-        return match ? match[1] + match[2] : value;
+        const track = value.match(/^\s*(?:currently playing track:\s*)?title="(.*?)",\s*artist="([^"]*)",\s*url="/isu);
+        const prefix = value.match(/^(?:.*?\s+)?-\s+(?=\w+=")/u)?.[0] ?? "";
+        const metadata = track
+            ? (track[1] + " " + value.slice(track[0].length)).replace(/\\"/gu, '"')
+            : value.slice(prefix.length).trim();
+        if (!track && !/^(?:\w+="[^"]*"\s*)+$/u.test(metadata)) {
+            return value;
+        }
+        const fields = new Map(Array.from(
+            metadata.matchAll(/(?:^|\s)(\w+)="([^"]*)"/gu),
+            ([, key, field]) => [key.toLowerCase(), field]
+        ));
+        const title = (fields.get("text") ?? track?.[1] ?? "").trim();
+        const artist = track?.[2].trim();
+        const spot = fields.get("song_spot")?.toUpperCase();
+        if (fields.has("adcontext") || fields.has("adswizzcontext") || spot === "A") {
+            return "Ad Content";
+        }
+        if (/^spot block (?:start|end)$/iu.test(title)) {
+            return "Channel Content";
+        }
+        // Wrapped feeds can use F for songs as well as station filler.
+        if (track && title && artist && artist.toLowerCase() !== "null"
+                && (!spot || spot === "M" || spot === "F")) {
+            return artist + " - " + title;
+        }
+        return !track && spot === "M" && title ? (prefix.trim() === "-" ? "" : prefix) + title : "Channel Content";
     }
 
     const stationLabels = ["footerAlbum", "currentName"].map(
@@ -90,9 +115,14 @@
         const stationLabel = stationKey(stationName);
         for (const element of stationLabels) {
             if (element) {
-                const duplicate = isIHeart && stationLabel !== ""
-                    && stationKey(element.querySelector("p")?.textContent ?? element.textContent)
-                        === stationLabel;
+                const label = stationKey(
+                    element.querySelector("p")?.textContent ?? element.textContent
+                );
+                const streamName = stationKey(currentSongObj?.Name ?? "");
+                const isStreamName = element.id === "currentName"
+                    || element.dataset.tag === "none";
+                const duplicate = isIHeart && stationLabel !== "" && label !== ""
+                    && (label === stationLabel || (isStreamName && label === streamName));
                 if (duplicate && !hiddenLabels.has(element)) {
                     hiddenLabels.set(element, element.style.display);
                     element.style.display = "none";
