@@ -5,7 +5,7 @@ import argparse
 import json
 import os
 from pathlib import Path
-from urllib.error import URLError
+from shutil import copyfile
 from urllib.parse import quote, urlsplit
 from urllib.request import Request, urlopen
 
@@ -19,6 +19,8 @@ def main():
                         help="Bridge URL reachable from myMPD")
     parser.add_argument("--replace", action="store_true",
                         help="Replace the installed script of the same name")
+    parser.add_argument("--home-workdir", type=Path,
+                        help="myMPD work directory for installing the Home tile")
     args = parser.parse_args()
     for url in (args.mympd, args.service):
         parsed = urlsplit(url)
@@ -54,15 +56,47 @@ def main():
     if session := os.environ.get("MYMPD_SESSION"):
         headers["X-myMPD-Session"] = session
     endpoint = args.mympd.rstrip("/") + "/api/" + quote(args.partition, safe="")
-    request = Request(endpoint, json.dumps(payload).encode(), headers)
-    try:
+    def rpc(payload):
+        request = Request(endpoint, json.dumps(payload).encode(), headers)
         with urlopen(request, timeout=15) as response:
-            result = json.load(response)
-    except (URLError, TimeoutError, ValueError) as error:
-        parser.exit(1, f"myMPD request failed: {error}\n")
-    if "result" not in result or "error" in result:
-        parser.exit(1, f"myMPD rejected the script: {result.get('error')}\n")
-    print(f"Installed {metadata['name']} in myMPD.")
+            reply = json.load(response)
+        if "error" in reply or "result" not in reply:
+            raise ValueError(f"myMPD rejected {payload['method']}: {reply.get('error')}")
+        return reply["result"]
+
+    try:
+        launcher = None
+        if args.home_workdir is not None:
+            root = Path(__file__).resolve().parent
+            launcher = json.loads(
+                (root / "dockhand/home-launcher.json").read_text(encoding="utf-8")
+            )
+            image = launcher["params"]["image"]
+            thumbs = args.home_workdir / "pics" / "thumbs"
+            if not thumbs.is_dir():
+                parser.error("--home-workdir must contain pics/thumbs")
+            target = thumbs / image
+            source_image = root / "assets" / image
+            if target.exists():
+                if target.read_bytes() != source_image.read_bytes():
+                    raise ValueError(f"Home image already exists with different content: {target}")
+            else:
+                copyfile(source_image, target)
+
+        rpc(payload)
+        print(f"Installed {metadata['name']} in myMPD.")
+        if launcher is not None:
+            result = rpc(dict(jsonrpc="2.0", id=1,
+                              method="MYMPD_API_HOME_ICON_LIST", params={}))
+            for index, tile in enumerate(result["data"]):
+                if (tile.get("cmd") == launcher["params"]["cmd"]
+                        and tile.get("options") == launcher["params"]["options"]):
+                    launcher["params"].update(replace=True, oldpos=index)
+                    break
+            rpc(launcher)
+            print(f"Installed {launcher['params']['name']} Home tile.")
+    except (OSError, TimeoutError, ValueError) as error:
+        parser.exit(1, f"Installation failed: {error}\n")
 
 
 if __name__ == "__main__":

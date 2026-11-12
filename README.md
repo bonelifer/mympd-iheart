@@ -59,7 +59,16 @@ and submit to open the search results.
 
 ## Add the myMPD Home launcher
 
-Copy [`iheart-radio-cc0.png`](assets/iheart-radio-cc0.png) into myMPD's
+To install the picker and Home tile together, give the installer write
+access to myMPD's work directory. For an existing picker, pass
+`--replace`.
+
+```sh
+python3 install-picker.py --mympd http://127.0.0.1:8081 \
+  --home-workdir /path/to/mympd/workdir
+```
+
+For a manual installation, copy [`iheart-radio-cc0.png`](assets/iheart-radio-cc0.png) into myMPD's
 `pics/thumbs/` directory. After installing the picker, submit the bundled
 [Home launcher JSON](dockhand/home-launcher.json) to the same myMPD
 partition. For the default partition:
