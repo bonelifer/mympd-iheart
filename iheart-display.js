@@ -155,6 +155,40 @@
 
     }
 
+    // Queue rows show "<stream title>: <raw iHeart metadata>"; keep the
+    // prefix and replace the metadata with the same cleaned title.
+    function updateQueue() {
+        // custom_js can run before myMPD defines getData().
+        if (typeof getData !== "function") {
+            return;
+        }
+        for (const row of document.querySelectorAll("#QueueCurrentList tbody tr")) {
+            const fragment = (getData(row, "uri") ?? "").split("#")[1] ?? "";
+            if (!/^\d+$/.test(new URLSearchParams(fragment).get("mympd-iheart") ?? "")) {
+                continue;
+            }
+            const cell = row.querySelector('td[data-col="Title"]');
+            const name = getData(row, "name") ?? "";
+            const text = cell?.textContent ?? "";
+            if (name === "" || !text.endsWith(name)) {
+                continue;
+            }
+            const formatted = titleCase(trackTitle(name.trim()));
+            if (formatted !== name.trim()) {
+                cell.textContent = text.slice(0, text.length - name.length) + formatted;
+            }
+        }
+    }
+
+    // myMPD replaces the queue table and its container after load, so
+    // watch the queue tab, which stays in place.
+    const queueTab = document.getElementById("tabQueueCurrent");
+    if (queueTab) {
+        new MutationObserver(updateQueue).observe(queueTab,
+            {childList: true, characterData: true, subtree: true});
+        updateQueue();
+    }
+
     const observer = new MutationObserver(update);
     const titleElements = ["PlaybackTitle", "footerTitle", "footerArtist"].map(
         id => document.getElementById(id)
